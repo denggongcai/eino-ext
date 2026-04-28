@@ -508,6 +508,7 @@ func TestBuildMessages(t *testing.T) {
 func TestBuildMessageFromUserInputMultiContent(t *testing.T) {
 	mockey.PatchConvey("TestBuildMessageFromUserInputMultiContent", t, func() {
 		base64Data := "base64data"
+		fileURL := "https://example.com/sample.pdf"
 		text := "hello"
 
 		tests := []struct {
@@ -553,6 +554,25 @@ func TestBuildMessageFromUserInputMultiContent(t *testing.T) {
 								},
 							},
 						},
+						{
+							Type: schema.ChatMessagePartTypeFileURL,
+							File: &schema.MessageInputFile{
+								MessagePartCommon: schema.MessagePartCommon{
+									Base64Data: &base64Data,
+									MIMEType:   "application/pdf",
+								},
+								Name: "sample.pdf",
+							},
+						},
+						{
+							Type: schema.ChatMessagePartTypeFileURL,
+							File: &schema.MessageInputFile{
+								MessagePartCommon: schema.MessagePartCommon{
+									URL: &fileURL,
+								},
+								Name: "sample-url.pdf",
+							},
+						},
 					},
 				},
 				want: openai.ChatCompletionMessage{
@@ -582,8 +602,34 @@ func TestBuildMessageFromUserInputMultiContent(t *testing.T) {
 								URL: "data:video/mp4;base64,base64data",
 							},
 						},
+						{
+							Type: openai.ChatMessagePartTypeFile,
+							File: &openai.ChatMessageFile{
+								FileData: "data:application/pdf;base64,base64data",
+								FileName: "sample.pdf",
+							},
+						},
+						{
+							Type: openai.ChatMessagePartTypeFile,
+							File: &openai.ChatMessageFile{
+								FileData: fileURL,
+								FileName: "sample-url.pdf",
+							},
+						},
 					},
 				},
+			},
+			{
+				name: "file part with nil file should fail",
+				inMsg: &schema.Message{
+					Role: schema.User,
+					UserInputMultiContent: []schema.MessageInputPart{
+						{
+							Type: schema.ChatMessagePartTypeFileURL,
+						},
+					},
+				},
+				wantErr: true,
 			},
 			{
 				name: "tool role success",
